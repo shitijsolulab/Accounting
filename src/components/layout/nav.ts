@@ -19,6 +19,8 @@ export type NavItem = {
   icon: LucideIcon;
   exact?: boolean;
   managerOnly?: boolean;
+  /** Shown in the sidebar but not clickable (page parked for the demo). */
+  disabled?: boolean;
 };
 
 export const NAV: NavItem[] = [

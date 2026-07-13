@@ -1,19 +1,35 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
+  ArrowLeftRight,
   ArrowRight,
+  BadgeDollarSign,
+  Banknote,
   BarChart3,
   Check,
   CheckCircle2,
+  ChevronRight,
   Clock,
+  Coins,
+  Cpu,
+  CreditCard,
   FileText,
+  Gauge,
   Landmark,
+  LifeBuoy,
+  Lock,
   Mail,
   Moon,
+  Percent,
+  PieChart,
+  Plug,
+  Receipt,
   ScrollText,
   ShieldCheck,
   Sparkles,
   Sun,
+  TrendingUp,
   User,
+  Users,
   Wand2,
   Workflow,
   X,
@@ -474,16 +490,842 @@ function IndexContent() {
     >
       <Nav onLogin={() => setAuthOpen(true)} onBookDemo={onBookDemo} />
       <Hero onBookDemo={onBookDemo} />
+      <WhyUs />
+      <FlowDiagram />
+      <LandingWorkflows />
+      <AboutSection onBookDemo={onBookDemo} />
       <IntegrationCatalog />
       <CopilotLibrary />
       <CoreDiagram />
-      <WorkflowSection content={CLOSE_WORKFLOW} />
       <PlatformGrid />
       <CTASection onBookDemo={onBookDemo} />
       <Footer />
       {authOpen && (
         <AuthModal onClose={() => setAuthOpen(false)} onAuthenticated={onAuthenticated} />
       )}
+    </div>
+  );
+}
+
+// ---------------- Scroll-reveal wrapper ----------------
+
+// Wraps children in a scroll-triggered reveal. `pop` uses a slight scale-in.
+function Reveal({
+  children,
+  className,
+  delay = 0,
+  pop = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  pop?: boolean;
+}) {
+  const { ref, inView } = useInView<HTMLDivElement>();
+  return (
+    <div
+      ref={ref}
+      className={cn(pop ? "reveal-pop" : "reveal", inView && "in-view", className)}
+      style={{ transitionDelay: inView ? `${delay}ms` : "0ms" }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ---------------- Wired data-flow diagram ----------------
+
+type FlowNode = { id: string; label: string; sub: string; icon: LucideIcon; y: number };
+
+const FLOW_SOURCES: FlowNode[] = [
+  { id: "bank", label: "Bank Feeds", sub: "Plaid · Mercury", icon: Landmark, y: 26 },
+  { id: "inbox", label: "AP Inbox", sub: "Vendor invoices", icon: Mail, y: 104 },
+  { id: "receipts", label: "Receipts", sub: "Cards & expenses", icon: Receipt, y: 182 },
+  { id: "docs", label: "Invoices & POs", sub: "PDFs, scans", icon: FileText, y: 260 },
+];
+
+const FLOW_OUTPUTS: FlowNode[] = [
+  { id: "journal", label: "Journal Entries", sub: "Posted to your ERP", icon: ScrollText, y: 26 },
+  { id: "recon", label: "Reconciliation", sub: "Matched & cleared", icon: Workflow, y: 104 },
+  { id: "reports", label: "Reports", sub: "P&L · BS · cash flow", icon: BarChart3, y: 182 },
+  { id: "approvals", label: "Approvals", sub: "Human sign-off", icon: CheckCircle2, y: 260 },
+];
+
+const FLOW_DETAIL: Record<string, string> = {
+  bank: "Live bank transactions stream in for matching and cash application — no CSV exports.",
+  inbox: "Vendor invoices land in your AP inbox and are read, coded, and matched automatically.",
+  receipts: "Card charges and employee receipts are captured and audited against policy.",
+  docs: "PDFs, scans, and photos are turned into structured, ledger-ready data with confidence scores.",
+  core: "The accounting core reads every document, runs the 3-way match and reconciliation, applies your controls, and drafts each entry — nothing posts without approval.",
+  journal: "Approved journal entries are written straight back to QuickBooks, Xero, or NetSuite.",
+  recon: "Bank, AP, and AR activity is auto-matched; only true exceptions reach your desk.",
+  reports: "Statements and variance commentary are generated on demand, ready to review and send.",
+  approvals: "Every drafted action routes to the right approver before it touches the ledger.",
+};
+
+const FLOW_W = 900;
+const CARD_W = 168;
+const CARD_H = 56;
+const CORE = { left: 366, top: 132, w: 168, h: 96 };
+
+function FlowDiagram() {
+  const [active, setActive] = useState<string | null>(null);
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  const srcRightX = 24 + CARD_W;
+  const coreLeftX = CORE.left;
+  const coreRightX = CORE.left + CORE.w;
+  const outLeftX = FLOW_W - 24 - CARD_W;
+  const coreCY = CORE.top + CORE.h / 2;
+
+  const wireIn = (n: FlowNode) => {
+    const y1 = n.y + CARD_H / 2;
+    const dx = (coreLeftX - srcRightX) / 2;
+    return `M ${srcRightX} ${y1} C ${srcRightX + dx} ${y1}, ${coreLeftX - dx} ${coreCY}, ${coreLeftX} ${coreCY}`;
+  };
+  const wireOut = (n: FlowNode) => {
+    const y2 = n.y + CARD_H / 2;
+    const dx = (outLeftX - coreRightX) / 2;
+    return `M ${coreRightX} ${coreCY} C ${coreRightX + dx} ${coreCY}, ${outLeftX - dx} ${y2}, ${outLeftX} ${y2}`;
+  };
+
+  const isActive = (side: "in" | "out", id: string) =>
+    active === null || active === "core" || active === id
+      ? true
+      : side === "in"
+        ? FLOW_SOURCES.some((s) => s.id === active)
+          ? active === id
+          : false
+        : FLOW_OUTPUTS.some((o) => o.id === active)
+          ? active === id
+          : false;
+
+  return (
+    <section className="relative border-b border-border/60 py-20">
+      <div className="mx-auto max-w-7xl px-5">
+        <Reveal className="mx-auto mb-12 flex max-w-2xl flex-col items-center gap-3 text-center">
+          <span className="font-mono text-xs uppercase tracking-wider text-primary">
+            The data flow
+          </span>
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            Your systems in. Reviewed, posted entries out.
+          </h2>
+          <p className="text-sm text-muted-foreground md:text-base">
+            Every source connects into one accounting core that reads, matches, and drafts — then
+            writes approved entries back. Tap any node to see what it does.
+          </p>
+        </Reveal>
+
+        <Reveal pop>
+          <div className="no-scrollbar overflow-x-auto rounded-2xl border border-border bg-surface p-4 md:p-6">
+            <div
+              ref={ref}
+              className="relative mx-auto"
+              style={{ width: FLOW_W, height: CORE.top + CORE.h + 60 }}
+            >
+              {/* column captions */}
+              <div className="absolute left-6 top-0 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                Sources
+              </div>
+              <div
+                className="absolute font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+                style={{ left: CORE.left, width: CORE.w, textAlign: "center", top: 0 }}
+              >
+                AI Core
+              </div>
+              <div
+                className="absolute font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+                style={{ right: 24, top: 0 }}
+              >
+                Outputs
+              </div>
+
+              {/* wires */}
+              <svg
+                className="absolute inset-0"
+                width={FLOW_W}
+                height={CORE.top + CORE.h + 60}
+                fill="none"
+              >
+                {FLOW_SOURCES.map((s) => {
+                  const on = isActive("in", s.id);
+                  return (
+                    <path
+                      key={`in-${s.id}`}
+                      d={wireIn(s)}
+                      className={cn(
+                        on ? "stroke-primary" : "stroke-border",
+                        inView && on && "wire-flow",
+                      )}
+                      strokeWidth={on ? 2 : 1.25}
+                      strokeOpacity={on ? 0.9 : 0.5}
+                    />
+                  );
+                })}
+                {FLOW_OUTPUTS.map((o) => {
+                  const on = isActive("out", o.id);
+                  return (
+                    <path
+                      key={`out-${o.id}`}
+                      d={wireOut(o)}
+                      className={cn(
+                        on ? "stroke-primary" : "stroke-border",
+                        inView && on && "wire-flow",
+                      )}
+                      strokeWidth={on ? 2 : 1.25}
+                      strokeOpacity={on ? 0.9 : 0.5}
+                    />
+                  );
+                })}
+              </svg>
+
+              {/* source nodes */}
+              {FLOW_SOURCES.map((n) => (
+                <FlowCard
+                  key={n.id}
+                  node={n}
+                  left={24}
+                  active={active === n.id}
+                  onClick={() => setActive((c) => (c === n.id ? null : n.id))}
+                />
+              ))}
+
+              {/* core */}
+              <button
+                type="button"
+                onClick={() => setActive((c) => (c === "core" ? null : "core"))}
+                style={{ left: CORE.left, top: CORE.top, width: CORE.w, height: CORE.h }}
+                className={cn(
+                  "brand-gradient absolute grid place-items-center rounded-2xl text-primary-foreground shadow-lg shadow-primary/30 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60",
+                  active === "core" ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "core-pulse",
+                )}
+              >
+                <Sparkles className="h-6 w-6" />
+                <span className="mt-1 text-sm font-semibold">Accounting Core</span>
+                <span className="text-[10px] opacity-80">read · match · draft</span>
+              </button>
+
+              {/* output nodes */}
+              {FLOW_OUTPUTS.map((n) => (
+                <FlowCard
+                  key={n.id}
+                  node={n}
+                  left={outLeftX}
+                  active={active === n.id}
+                  onClick={() => setActive((c) => (c === n.id ? null : n.id))}
+                />
+              ))}
+            </div>
+          </div>
+        </Reveal>
+
+        {/* detail caption */}
+        <div className="mt-4 flex min-h-[2.5rem] items-center justify-center rounded-xl border border-border bg-surface-2/50 px-4 py-3 text-center text-sm text-muted-foreground">
+          {active ? (
+            <span className="text-foreground/90">{FLOW_DETAIL[active]}</span>
+          ) : (
+            <span>Tap a source, the core, or an output to trace what happens at each step.</span>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FlowCard({
+  node,
+  left,
+  active,
+  onClick,
+}: {
+  node: FlowNode;
+  left: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const Icon = node.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ left, top: node.y, width: CARD_W, height: CARD_H }}
+      className={cn(
+        "absolute flex items-center gap-3 rounded-xl border bg-card px-3 text-left shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+        active
+          ? "border-primary ring-1 ring-primary/40"
+          : "border-border hover:-translate-y-0.5 hover:border-primary/50",
+      )}
+    >
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold text-foreground">{node.label}</span>
+        <span className="block truncate text-[11px] text-muted-foreground">{node.sub}</span>
+      </span>
+    </button>
+  );
+}
+
+// ---------------- Why us ----------------
+
+const WHY_US: { icon: LucideIcon; title: string; desc: string; featured?: boolean }[] = [
+  {
+    icon: Users,
+    title: "Built for Accountants",
+    desc: "Purpose-built for how finance teams work — GL coding, controls, and audit trails baked into every workflow.",
+  },
+  {
+    icon: Cpu,
+    title: "AI at the Core",
+    desc: "Copilots automate the busywork across your ledger using cutting-edge document AI.",
+    featured: true,
+  },
+  {
+    icon: BadgeDollarSign,
+    title: "Transparent Pricing",
+    desc: "Flat monthly pricing tuned to your volume — no hidden fees, no surprises.",
+  },
+  {
+    icon: Gauge,
+    title: "Accuracy & Compliance",
+    desc: "Policy checks and validations on every entry, so nothing posts out of line.",
+  },
+  {
+    icon: Lock,
+    title: "Confidentiality & Security",
+    desc: "Bank-grade encryption, role-based access, and SOC 2 controls protect your data.",
+  },
+  {
+    icon: LifeBuoy,
+    title: "Support When You Need It",
+    desc: "Reach our team over email, Slack, and Microsoft Teams — plus docs and in-app help.",
+  },
+];
+
+function WhyUs() {
+  return (
+    <section id="why-us" className="relative overflow-hidden border-b border-border/60 py-20">
+      <FinanceGlyphs />
+      <div className="relative mx-auto max-w-7xl px-5">
+        <Reveal className="mb-12 text-center">
+          <span className="font-mono text-xs uppercase tracking-wider text-primary">Why us</span>
+          <h2 className="mx-auto mt-2 max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+            Why finance teams choose us
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
+            Expert accountants, modern automation, and the controls your close requires — under one
+            roof.
+          </p>
+        </Reveal>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {WHY_US.map((w, i) => {
+            const Icon = w.icon;
+            return (
+              <Reveal key={w.title} pop delay={(i % 3) * 90}>
+                <div
+                  className={cn(
+                    "flex h-full flex-col rounded-2xl border p-6 transition duration-300 hover:-translate-y-1",
+                    w.featured
+                      ? "brand-gradient border-transparent text-primary-foreground shadow-lg shadow-primary/30"
+                      : "border-border bg-surface hover:border-primary/40 hover:shadow-md",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "grid h-11 w-11 place-items-center rounded-xl",
+                      w.featured
+                        ? "bg-white/15 text-primary-foreground"
+                        : "bg-primary/10 text-primary ring-1 ring-primary/15",
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-4 text-base font-semibold">{w.title}</h3>
+                  <p
+                    className={cn(
+                      "mt-1.5 text-sm leading-relaxed",
+                      w.featured ? "text-primary-foreground/85" : "text-muted-foreground",
+                    )}
+                  >
+                    {w.desc}
+                  </p>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------- Our services (teal band) ----------------
+
+const SERVICES: { icon: LucideIcon; title: string; points: string[] }[] = [
+  { icon: FileText, title: "Bookkeeping", points: ["Bank reconciliation", "Departmental bookkeeping", "Chart-of-accounts setup"] },
+  { icon: Landmark, title: "Payroll", points: ["Payroll processing", "Compliance & filings", "Year-end T4 / W-2"] },
+  { icon: BarChart3, title: "Financial Reporting", points: ["Personalized reports", "P&L statements", "Balance sheet"] },
+  { icon: Receipt, title: "Accounts Payable & Receivable", points: ["Invoice processing", "3-way match", "Collections & dunning"] },
+  { icon: ShieldCheck, title: "Tax & Compliance", points: ["Sales-tax filings", "Nexus review", "Audit preparation"] },
+  { icon: Workflow, title: "Advisory", points: ["Cash-flow forecasting", "Month-end close", "Board reporting"] },
+];
+
+function ServicesBand() {
+  return (
+    <section id="services" className="relative overflow-hidden brand-gradient py-20 text-primary-foreground">
+      <FinanceGlyphs onTeal />
+      <div className="relative mx-auto max-w-7xl px-5">
+        <Reveal className="mb-10 flex flex-col items-center gap-2 text-center">
+          <span className="font-mono text-xs uppercase tracking-wider text-primary-foreground/80">
+            Coverage
+          </span>
+          <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+            One platform for every accounting workflow
+          </h2>
+        </Reveal>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {SERVICES.map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <Reveal key={s.title} pop delay={(i % 3) * 90}>
+                <div className="flex h-full flex-col rounded-2xl border border-border bg-surface p-6 text-foreground shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-md">
+                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/15">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-4 text-base font-semibold">{s.title}</h3>
+                  <ul className="mt-3 space-y-2">
+                    {s.points.map((p) => (
+                      <li key={p} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+
+        <div className="mt-10 flex justify-center">
+          <a
+            href="#copilots"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:-translate-y-0.5"
+          >
+            View all copilots
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ---------------- About ----------------
+
+const ABOUT_POINTS = [
+  "Designed with CPAs and controllers, for real accounting work",
+  "Configurable to your chart of accounts and close process",
+  "Your team reviews and approves before anything posts",
+];
+
+function AboutSection({ onBookDemo }: { onBookDemo: () => void }) {
+  return (
+    <section id="about" className="border-b border-border/60 py-20">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 lg:grid-cols-2">
+        {/* Copy */}
+        <Reveal>
+          <span className="font-mono text-xs uppercase tracking-wider text-primary">About us</span>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+            Built by accountants, for accountants
+          </h2>
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
+            Our copilots handle the busywork across AP/AR, reconciliation, and the month-end close,
+            so your team can focus on the work that matters. Everything is configurable to your
+            ledger — with a full audit trail on every action.
+          </p>
+          <ul className="mt-5 space-y-2.5">
+            {ABOUT_POINTS.map((p) => (
+              <li key={p} className="flex items-start gap-2.5 text-sm text-foreground/90">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                {p}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={onBookDemo}
+            className="brand-gradient mt-7 inline-flex items-center gap-1.5 rounded-lg px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:-translate-y-0.5"
+          >
+            Read more
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </Reveal>
+
+        {/* Framed visual (teal L-brackets, like the reference) */}
+        <Reveal pop className="relative mx-auto w-full max-w-md">
+          <span
+            aria-hidden
+            className="absolute -right-3 -top-3 h-24 w-24 rounded-tr-2xl border-r-2 border-t-2 border-primary"
+          />
+          <span
+            aria-hidden
+            className="absolute -bottom-3 -left-3 h-24 w-24 rounded-bl-2xl border-b-2 border-l-2 border-primary"
+          />
+          <div className="relative overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl">
+            <div className="grid-bg flex items-center justify-between border-b border-border px-5 py-4">
+              <div className="flex items-center gap-2">
+                <span className="brand-gradient grid h-7 w-7 place-items-center rounded-md text-primary-foreground">
+                  <Sparkles className="h-4 w-4" />
+                </span>
+                <span className="text-sm font-semibold">This month at a glance</span>
+              </div>
+              <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-500">
+                On track
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 p-5">
+              {[
+                { k: "Revenue", v: "$1.28M", s: "+12% MoM" },
+                { k: "Expenses", v: "$842K", s: "−3% MoM" },
+                { k: "Net margin", v: "34.2%", s: "+1.8 pts" },
+                { k: "Days to close", v: "4.1", s: "−2.4 days" },
+              ].map((m) => (
+                <div key={m.k} className="rounded-xl border border-border bg-card p-3">
+                  <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{m.k}</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums">{m.v}</div>
+                  <div className="text-[11px] font-medium text-emerald-500">{m.s}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+// ---------------- Workflows (same as the in-app Workflows page) ----------------
+
+type WfStepKind = "trigger" | "extract" | "match" | "validate" | "approve" | "output";
+type WfStep = { label: string; system: string; kind: WfStepKind };
+type LandingWf = { id: string; name: string; flow: WfStep[] };
+
+const WF_KIND: Record<WfStepKind, { label: string; dot: string; ring: string; text: string }> = {
+  trigger: { label: "Trigger", dot: "bg-amber-400", ring: "border-amber-400/50", text: "text-amber-400" },
+  extract: { label: "Extract", dot: "bg-sky-400", ring: "border-sky-400/50", text: "text-sky-400" },
+  match: { label: "Match", dot: "bg-cyan-400", ring: "border-cyan-400/50", text: "text-cyan-400" },
+  validate: { label: "Validate", dot: "bg-violet-400", ring: "border-violet-400/50", text: "text-violet-400" },
+  approve: { label: "Approve", dot: "bg-indigo-400", ring: "border-indigo-400/50", text: "text-indigo-400" },
+  output: { label: "Output", dot: "bg-emerald-400", ring: "border-emerald-400/50", text: "text-emerald-400" },
+};
+
+const LANDING_WORKFLOWS: LandingWf[] = [
+  {
+    id: "wf_invoice_0417",
+    name: "Invoice Processing & AP Approval",
+    flow: [
+      { label: "Invoice arrives", system: "AP Inbox", kind: "trigger" },
+      { label: "Extract line items", system: "Document AI", kind: "extract" },
+      { label: "3-way match", system: "QuickBooks", kind: "match" },
+      { label: "GL coding + policy", system: "Rules Engine", kind: "validate" },
+      { label: "Controller approval", system: "Approvals", kind: "approve" },
+      { label: "Post journal entry", system: "QuickBooks", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_bankrec_jun",
+    name: "Bank Reconciliation",
+    flow: [
+      { label: "Bank feed syncs", system: "Mercury Bank", kind: "trigger" },
+      { label: "Pull transactions", system: "Bank Feed", kind: "extract" },
+      { label: "Auto-match ledger", system: "Core Banking", kind: "match" },
+      { label: "Group exceptions", system: "Recon Engine", kind: "validate" },
+      { label: "Controller approval", system: "Approvals", kind: "approve" },
+      { label: "Close reconciliation", system: "Ledger", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_close_jul",
+    name: "Month-End Close",
+    flow: [
+      { label: "Kick off close", system: "Scheduler", kind: "trigger" },
+      { label: "Work checklist", system: "Close Engine", kind: "extract" },
+      { label: "Prepare accruals", system: "NetSuite", kind: "match" },
+      { label: "Reconcile accounts", system: "Core Banking", kind: "validate" },
+      { label: "CFO approval", system: "Approvals", kind: "approve" },
+      { label: "Lock period", system: "Ledger", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_ar_dunning",
+    name: "AR Collections & Dunning",
+    flow: [
+      { label: "Invoice overdue", system: "QuickBooks", kind: "trigger" },
+      { label: "Rank by risk", system: "AR Engine", kind: "extract" },
+      { label: "Reconcile payments", system: "Bank Feed", kind: "match" },
+      { label: "Draft reminders", system: "Document AI", kind: "validate" },
+      { label: "Controller approval", system: "Approvals", kind: "approve" },
+      { label: "Queue emails", system: "CRM", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_expense_118",
+    name: "Expense Audit",
+    flow: [
+      { label: "Expense submitted", system: "Expense Tool", kind: "trigger" },
+      { label: "Read receipts", system: "Document AI", kind: "extract" },
+      { label: "Policy check", system: "Rules Engine", kind: "validate" },
+      { label: "Finance approval", system: "Approvals", kind: "approve" },
+      { label: "Reimburse", system: "Payroll", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_vendor_nucor",
+    name: "Vendor Onboarding & W-9",
+    flow: [
+      { label: "New vendor request", system: "Email", kind: "trigger" },
+      { label: "Read W-9", system: "Document AI", kind: "extract" },
+      { label: "Validate TIN + sanctions", system: "Compliance", kind: "validate" },
+      { label: "Finance approval", system: "Approvals", kind: "approve" },
+      { label: "Create vendor record", system: "NetSuite", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_salestax_q2",
+    name: "Sales Tax & Compliance",
+    flow: [
+      { label: "Filing deadline", system: "Scheduler", kind: "trigger" },
+      { label: "Review nexus", system: "NetSuite", kind: "extract" },
+      { label: "Recalculate tax", system: "Tax Engine", kind: "match" },
+      { label: "Prepare return", system: "Document AI", kind: "validate" },
+      { label: "Controller approval", system: "Approvals", kind: "approve" },
+      { label: "File return", system: "Tax Portal", kind: "output" },
+    ],
+  },
+  {
+    id: "wf_report_jun",
+    name: "Financial Reporting",
+    flow: [
+      { label: "Select period", system: "Dashboard", kind: "trigger" },
+      { label: "Pull actuals + budget", system: "NetSuite", kind: "extract" },
+      { label: "Build statements", system: "Reporting Engine", kind: "match" },
+      { label: "Variance commentary", system: "Document AI", kind: "validate" },
+      { label: "CFO approval", system: "Approvals", kind: "approve" },
+      { label: "Publish report", system: "Reporting", kind: "output" },
+    ],
+  },
+];
+
+// Flow-graph geometry (mirrors the in-app Workflows page).
+const WF_STEP_W = 138;
+const WF_STEP_H = 52;
+const WF_SYS_W = 116;
+const WF_SYS_H = 36;
+const WF_STEP_Y = 88;
+const WF_SYS_Y = 258;
+const WF_PAD = 24;
+const WF_STEP_GAP = 168;
+
+function LandingWorkflows() {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const active = LANDING_WORKFLOWS.find((w) => w.id === activeId) ?? null;
+
+  return (
+    <section id="workflow" className="border-b border-border/60 bg-surface-2/40 py-20">
+      <div className="mx-auto max-w-7xl px-5">
+        <Reveal className="mx-auto mb-10 flex max-w-2xl flex-col items-center gap-3 text-center">
+          <span className="font-mono text-xs uppercase tracking-wider text-primary">Workflows</span>
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
+            Watch a workflow run end to end
+          </h2>
+          <p className="text-sm text-muted-foreground md:text-base">
+            The same workflows that run inside the app. Pick one to trace every step and the systems
+            it connects.
+          </p>
+        </Reveal>
+
+        {/* Compact workflow boxes — click one to open its flow in a popup */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {LANDING_WORKFLOWS.map((w) => {
+            const systems = new Set(w.flow.map((s) => s.system)).size;
+            return (
+              <Reveal key={w.id} pop>
+                <button
+                  onClick={() => setActiveId(w.id)}
+                  className="group flex w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 text-left transition duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                >
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
+                    <Workflow className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-foreground">{w.name}</div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      {w.flow.length} steps · {systems} systems
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                </button>
+              </Reveal>
+            );
+          })}
+        </div>
+      </div>
+
+      {active && <WorkflowModal wf={active} onClose={() => setActiveId(null)} />}
+    </section>
+  );
+}
+
+function WorkflowModal({ wf, onClose }: { wf: LandingWf; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-8 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${wf.name} workflow`}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="nice-scroll max-h-[88vh] w-full max-w-5xl overflow-y-auto rounded-2xl border border-border bg-surface shadow-2xl"
+      >
+        {/* Header */}
+        <div className="sticky top-0 flex items-center justify-between gap-4 border-b border-border bg-surface px-6 py-4">
+          <div className="flex items-center gap-2.5">
+            <span className="brand-gradient grid h-8 w-8 place-items-center rounded-lg text-primary-foreground shadow-sm shadow-primary/25">
+              <Workflow className="h-4 w-4" />
+            </span>
+            <div>
+              <h3 className="text-base font-semibold tracking-tight">{wf.name}</h3>
+              <p className="font-mono text-[11px] text-muted-foreground">{wf.id}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="shrink-0 rounded-lg p-2 text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Flow */}
+        <div className="nice-scroll overflow-x-auto p-6">
+          <LandingWorkflowGraph flow={wf.flow} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LandingWorkflowGraph({ flow }: { flow: WfStep[] }) {
+  const stepX = flow.map((_, i) => WF_PAD + WF_STEP_W / 2 + i * WF_STEP_GAP);
+  const canvasW = WF_PAD * 2 + WF_STEP_W + (flow.length - 1) * WF_STEP_GAP;
+  const systems = Array.from(new Set(flow.map((s) => s.system)));
+  const sysX = (name: string) => {
+    const i = systems.indexOf(name);
+    if (systems.length === 1) return canvasW / 2;
+    const usable = canvasW - WF_PAD * 2 - WF_SYS_W;
+    return WF_PAD + WF_SYS_W / 2 + (i * usable) / (systems.length - 1);
+  };
+  const seqPath = (i: number) => {
+    const x1 = stepX[i] + WF_STEP_W / 2;
+    const x2 = stepX[i + 1] - WF_STEP_W / 2;
+    const dx = (x2 - x1) / 2;
+    return `M ${x1} ${WF_STEP_Y} C ${x1 + dx} ${WF_STEP_Y}, ${x2 - dx} ${WF_STEP_Y}, ${x2} ${WF_STEP_Y}`;
+  };
+  const downPath = (i: number, name: string) => {
+    const x1 = stepX[i];
+    const y1 = WF_STEP_Y + WF_STEP_H / 2;
+    const x2 = sysX(name);
+    const y2 = WF_SYS_Y - WF_SYS_H / 2;
+    const dy = (y2 - y1) / 2;
+    return `M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}`;
+  };
+  const CANVAS_H = WF_SYS_Y + WF_SYS_H / 2 + 28;
+
+  return (
+    <div className="mx-auto" style={{ width: canvasW }}>
+      <div className="relative" style={{ width: canvasW, height: CANVAS_H + 24 }}>
+        <div className="absolute left-0 top-0 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          Flow
+        </div>
+        <div
+          className="absolute left-0 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground"
+          style={{ top: WF_SYS_Y - WF_SYS_H / 2 - 42 }}
+        >
+          Connectors
+        </div>
+
+        <svg className="absolute inset-0" width={canvasW} height={CANVAS_H + 24} fill="none">
+          {flow.slice(0, -1).map((_, i) => (
+            <path key={`seq-${i}`} d={seqPath(i)} className="stroke-primary/70" strokeWidth={1.75} />
+          ))}
+          {flow.map((s, i) => (
+            <path key={`down-${i}`} d={downPath(i, s.system)} className="stroke-primary/25" strokeWidth={1.25} />
+          ))}
+        </svg>
+
+        {flow.map((s, i) => {
+          const meta = WF_KIND[s.kind];
+          return (
+            <div
+              key={`step-${i}`}
+              style={{ left: stepX[i] - WF_STEP_W / 2, top: WF_STEP_Y - WF_STEP_H / 2, width: WF_STEP_W, height: WF_STEP_H }}
+              className={cn("absolute flex flex-col justify-center rounded-md border bg-card px-2.5 shadow-sm", meta.ring)}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className={cn("grid h-4 w-4 shrink-0 place-items-center rounded-full text-[9px] font-semibold text-background", meta.dot)}>
+                  {i + 1}
+                </span>
+                <span className="truncate text-[11px] font-semibold text-foreground">{s.label}</span>
+              </div>
+              <span className={cn("mt-0.5 pl-[22px] text-[9px] font-medium uppercase tracking-wide", meta.text)}>
+                {meta.label}
+              </span>
+            </div>
+          );
+        })}
+
+        {systems.map((name) => (
+          <div
+            key={`sys-${name}`}
+            style={{ left: sysX(name) - WF_SYS_W / 2, top: WF_SYS_Y - WF_SYS_H / 2, width: WF_SYS_W, height: WF_SYS_H }}
+            className="absolute flex items-center gap-1.5 rounded-md border border-orange-400/50 bg-card px-2.5 shadow-sm"
+          >
+            <Plug className="h-3 w-3 shrink-0 text-orange-400" />
+            <span className="truncate text-[11px] font-medium text-foreground">{name}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+        {(Object.keys(WF_KIND) as WfStepKind[]).map((k) => (
+          <span key={k} className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className={cn("h-2 w-2 rounded-full", WF_KIND[k].dot)} />
+            {WF_KIND[k].label}
+          </span>
+        ))}
+        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-orange-400" />
+          Connector
+        </span>
+      </div>
     </div>
   );
 }
@@ -499,17 +1341,17 @@ function Nav({ onLogin, onBookDemo }: { onLogin: () => void; onBookDemo: () => v
           <LogoLockup className="ml-2" />
         </a>
         <nav className="hidden items-center gap-8 text-sm font-medium text-muted-foreground md:flex">
+          <a href="#why-us" className="transition hover:text-foreground">
+            Why us
+          </a>
+          <a href="#services" className="transition hover:text-foreground">
+            Services
+          </a>
+          <a href="#about" className="transition hover:text-foreground">
+            About
+          </a>
           <a href="#copilots" className="transition hover:text-foreground">
             Copilots
-          </a>
-          <a href="#platform" className="transition hover:text-foreground">
-            Platform
-          </a>
-          <a href="#workflow" className="transition hover:text-foreground">
-            How it works
-          </a>
-          <a href="#integrations" className="transition hover:text-foreground">
-            Integrations
           </a>
         </nav>
         <div className="flex items-center gap-2">
@@ -540,6 +1382,50 @@ function Nav({ onLogin, onBookDemo }: { onLogin: () => void; onBookDemo: () => v
 
 // ---------------- Hero ----------------
 
+// Decorative finance motifs — faint charts, cards, coins, and currency icons that
+// sit behind a section's content (pointer-events-none) to give a fintech identity
+// without affecting layout. Set `onTeal` when the section has a teal background.
+function FinanceGlyphs({ onTeal = false }: { onTeal?: boolean }) {
+  const tone = onTeal ? "text-primary-foreground/10" : "text-primary/[0.07]";
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <CreditCard className={cn("absolute left-[4%] top-[20%] h-16 w-16 -rotate-12", tone)} />
+      <PieChart className={cn("absolute right-[7%] top-[16%] h-14 w-14", tone)} />
+      <Coins className={cn("absolute left-[13%] bottom-[16%] h-12 w-12", tone)} />
+      <Percent className={cn("absolute right-[15%] bottom-[26%] h-9 w-9", tone)} />
+      <Banknote className={cn("absolute left-[46%] top-[12%] h-12 w-12 rotate-6", tone)} />
+      <TrendingUp className={cn("absolute right-[40%] bottom-[14%] h-12 w-12", tone)} />
+      <ArrowLeftRight className={cn("absolute left-[28%] bottom-[34%] h-9 w-9", tone)} />
+    </div>
+  );
+}
+
+// A faint upward "market line" chart, drawn edge-to-edge along the bottom of a section.
+function MarketLine({ className }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      className={cn("pointer-events-none absolute inset-x-0 bottom-0 h-40 w-full", className)}
+      viewBox="0 0 1200 160"
+      preserveAspectRatio="none"
+      fill="none"
+    >
+      <polyline
+        points="0,120 90,104 180,112 270,74 360,92 450,54 540,68 630,34 720,58 810,28 900,44 990,18 1080,36 1200,14"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <polyline
+        points="0,140 90,132 180,136 270,116 360,124 450,104 540,112 630,92 720,104 810,86 900,96 990,78 1080,90 1200,72"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeOpacity="0.6"
+        strokeDasharray="4 5"
+      />
+    </svg>
+  );
+}
+
 const HERO_TRUST: { icon: LucideIcon; label: string }[] = [
   { icon: Landmark, label: "Works with QuickBooks, Xero & NetSuite" },
   { icon: ShieldCheck, label: "Human approval before anything posts" },
@@ -548,51 +1434,200 @@ const HERO_TRUST: { icon: LucideIcon; label: string }[] = [
 
 function Hero({ onBookDemo }: { onBookDemo: () => void }) {
   return (
-    <section className="relative border-b border-border/60">
+    <section className="relative overflow-hidden border-b border-border/60">
       {/* Decorative layer is clipped on its own so it never overflows the section. */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute inset-0 grid-bg opacity-60" />
+        {/* Full-section background image — auto-switches with the active theme. */}
+        <img
+          src="/Background-light.png"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-center dark:hidden"
+        />
+        <img
+          src="/Background-dark.png"
+          alt=""
+          className="absolute inset-0 hidden h-full w-full object-cover object-center dark:block"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/40 to-background/80 dark:from-background/40 dark:via-background/30 dark:to-background/80" />
         <div className="absolute -top-44 left-1/2 h-[30rem] w-[60rem] -translate-x-1/2 rounded-full bg-primary/25 blur-3xl" />
         <div className="absolute -top-10 right-0 h-80 w-80 rounded-full bg-primary-2/20 blur-3xl" />
+        {/* faint finance motifs — left side, clear of the product card */}
+        <Coins className="absolute left-[3%] top-[20%] h-10 w-10 text-primary/[0.08]" />
+        <PieChart className="absolute left-[16%] top-[12%] hidden h-12 w-12 text-primary/[0.07] lg:block" />
+        <CreditCard className="absolute bottom-[24%] left-[6%] h-14 w-14 -rotate-12 text-primary/[0.07]" />
+        <Percent className="absolute bottom-[16%] left-[24%] hidden h-8 w-8 text-primary/[0.08] lg:block" />
+        <MarketLine className="text-primary/[0.08]" />
       </div>
-      <div className="relative mx-auto max-w-7xl px-5 py-20 md:py-28">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-          Built for CFOs, controllers & finance teams
-        </div>
-        <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl">
-          {HERO.tagline}
-        </h1>
-        <p className="mt-5 max-w-2xl text-base text-muted-foreground md:text-lg">{HERO.sub}</p>
+      <div className="relative mx-auto max-w-7xl px-5 py-16 md:py-24">
+        <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+          {/* Left — copy */}
+          <div className="max-w-xl">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+              Built for CFOs, controllers & finance teams
+            </div>
+            <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight md:text-5xl lg:text-6xl">
+              {HERO.tagline}
+            </h1>
+            <p className="mt-5 text-base leading-relaxed text-muted-foreground md:text-lg">
+              {HERO.sub}
+            </p>
 
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-stretch">
-          <button
-            onClick={onBookDemo}
-            className="brand-gradient inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold uppercase tracking-wide text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:opacity-95"
-          >
-            Book a demo
-          </button>
-          <a
-            href="#copilots"
-            className="inline-flex items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 text-sm font-semibold uppercase tracking-wide text-foreground transition hover:border-primary hover:text-primary"
-          >
-            See the copilots
-          </a>
-        </div>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={onBookDemo}
+                className="brand-gradient inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/30 transition hover:-translate-y-0.5 hover:opacity-95"
+              >
+                Book a demo
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <a
+                href="#copilots"
+                className="inline-flex items-center justify-center rounded-xl border border-border bg-surface px-6 py-3 text-sm font-semibold text-foreground transition hover:border-primary hover:text-primary"
+              >
+                See the copilots
+              </a>
+            </div>
 
-        <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-8 sm:gap-y-3">
-          {HERO_TRUST.map((t) => {
-            const Icon = t.icon;
-            return (
-              <div key={t.label} className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Icon className="h-4 w-4 shrink-0 text-primary" />
-                {t.label}
-              </div>
-            );
-          })}
+            {/* trust chips */}
+            <div className="mt-8 flex flex-wrap gap-2">
+              {HERO_TRUST.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <span
+                    key={t.label}
+                    className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted-foreground"
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    {t.label}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right — close dashboard preview */}
+          <HeroPreview />
         </div>
       </div>
     </section>
+  );
+}
+
+// A realistic "month-end close" product preview — the accounting touch: dollar
+// KPIs, a live reconciliation match list, and a drafted journal entry.
+function HeroPreview() {
+  return (
+    <div className="relative">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-4 rounded-[28px] bg-primary/10 blur-2xl"
+      />
+
+
+      <div className="relative rounded-2xl border border-border bg-surface shadow-2xl">
+        {/* window chrome */}
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="grid h-6 w-6 place-items-center rounded-md brand-gradient text-primary-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+            </span>
+            <span className="text-sm font-semibold">Month-end close</span>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-500">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> Live
+          </span>
+        </div>
+
+        <div className="space-y-4 p-4">
+          {/* KPI tiles */}
+          <div className="grid grid-cols-3 gap-2.5">
+            {[
+              { label: "Cash", value: "$482,190", tone: "text-foreground" },
+              { label: "Auto-matched", value: "96.6%", tone: "text-emerald-500" },
+              { label: "To approve", value: "5", tone: "text-amber-500" },
+            ].map((k) => (
+              <div key={k.label} className="rounded-xl border border-border bg-card p-3">
+                <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {k.label}
+                </div>
+                <div className={cn("mt-1 text-lg font-semibold tabular-nums", k.tone)}>
+                  {k.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Reconciliation match list */}
+          <div className="rounded-xl border border-border bg-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                Bank reconciliation
+              </span>
+              <span className="text-[10px] text-muted-foreground">398 / 412 matched</span>
+            </div>
+            <ul className="space-y-1.5">
+              {[
+                { d: "ACME SUPPLIES — INV AC-2214", a: "$14,280.00", ok: true },
+                { d: "DEPOSIT — STRIPE PAYOUT", a: "$8,412.09", ok: true },
+                { d: "BANK FEE — WIRE", a: "$45.00", ok: false },
+              ].map((r) => (
+                <li key={r.d} className="flex items-center justify-between gap-3 text-[12px]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    {r.ok ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    ) : (
+                      <Clock className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    )}
+                    <span className="truncate font-mono text-muted-foreground">{r.d}</span>
+                  </span>
+                  <span className="shrink-0 font-mono tabular-nums text-foreground">{r.a}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Drafted journal entry */}
+          <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-mono text-[10px] uppercase tracking-wider text-primary">
+                Drafted journal entry
+              </span>
+              <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-500">
+                Needs approval
+              </span>
+            </div>
+            <table className="w-full text-[12px]">
+              <tbody className="font-mono">
+                <tr>
+                  <td className="py-0.5 text-foreground/90">Inventory — Materials</td>
+                  <td className="py-0.5 text-right tabular-nums text-emerald-500">$12,900.00</td>
+                  <td className="py-0.5 text-right tabular-nums text-muted-foreground">—</td>
+                </tr>
+                <tr>
+                  <td className="py-0.5 text-foreground/90">Sales Tax Payable</td>
+                  <td className="py-0.5 text-right tabular-nums text-emerald-500">$1,200.00</td>
+                  <td className="py-0.5 text-right tabular-nums text-muted-foreground">—</td>
+                </tr>
+                <tr>
+                  <td className="py-0.5 text-foreground/90">Accounts Payable — Acme</td>
+                  <td className="py-0.5 text-right tabular-nums text-muted-foreground">—</td>
+                  <td className="py-0.5 text-right tabular-nums text-sky-500">$14,280.00</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className="mt-3 flex items-center gap-2">
+              <button className="brand-gradient inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold text-primary-foreground">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Approve & post
+              </button>
+              <button className="rounded-md border border-border bg-surface px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                Review
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -692,7 +1727,7 @@ function CoreDiagram() {
   return (
     <section id="platform" className="border-b border-border/60 py-20">
       <div className="mx-auto max-w-7xl px-5">
-        <div className="mb-12 flex max-w-2xl flex-col gap-3">
+        <Reveal className="mx-auto mb-12 flex max-w-2xl flex-col items-center gap-3 text-center">
           <span className="font-mono text-xs uppercase tracking-wider text-primary">
             The accounting core
           </span>
@@ -705,7 +1740,7 @@ function CoreDiagram() {
             trail, and reporting — already wired together and tuned for accounting. Click any block
             to see what it does.
           </p>
-        </div>
+        </Reveal>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-3">
           {CORE_CAPABILITIES.map((s, i) => {
             const Icon = s.icon;
@@ -1001,19 +2036,19 @@ function CopilotLibrary() {
   return (
     <section id="copilots" className="border-b border-border/60 bg-surface-2/40 py-20">
       <div className="mx-auto max-w-7xl px-5">
-        <div className="mb-8 flex flex-col gap-2">
+        <Reveal className="mx-auto mb-10 flex max-w-2xl flex-col items-center gap-2 text-center">
           <span className="font-mono text-xs uppercase tracking-wider text-primary">
             Copilot library
           </span>
-          <h2 className="max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
             Pick the copilot for the work you want off your plate.
           </h2>
-          <p className="max-w-2xl text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Every copilot follows the same shape: it starts on a trigger, handles the busywork with
             AI, and stops for your approval before anything posts. Click any card to see how it
             runs.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-5">
           <div className="flex flex-wrap gap-1.5">
@@ -1346,15 +2381,15 @@ function PlatformGrid() {
   return (
     <section className="border-b border-border/60 py-20">
       <div className="mx-auto max-w-7xl px-5">
-        <div className="mb-10">
+        <Reveal className="mx-auto mb-12 max-w-2xl text-center">
           <span className="font-mono text-xs uppercase tracking-wider text-primary">
             Under the hood
           </span>
-          <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
             Enterprise-grade, built for the controls finance requires.
           </h2>
-        </div>
-        <div className="overflow-hidden rounded-2xl border border-border">
+        </Reveal>
+        <Reveal pop className="overflow-hidden rounded-2xl border border-border">
           {rows.map((r, i) => (
             <div
               key={r.k}
@@ -1368,7 +2403,7 @@ function PlatformGrid() {
               <div className="text-sm text-foreground/90">{r.v}</div>
             </div>
           ))}
-        </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -1379,13 +2414,13 @@ function PlatformGrid() {
 function CTASection({ onBookDemo }: { onBookDemo: () => void }) {
   return (
     <section id="cta" className="py-20">
-      <div className="mx-auto max-w-4xl px-5 text-center">
+      <Reveal pop className="mx-auto max-w-4xl px-5 text-center">
         <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
           Give your finance team back the close.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-sm text-muted-foreground">
-          See how AP/AR, reconciliation, and reporting copilots run on your own stack. Book a demo,
-          or sign in to your workspace.
+          See how AP/AR, reconciliation, and reporting copilots run on your own stack. Book a demo
+          and we'll walk you through it.
         </p>
         <button
           onClick={onBookDemo}
@@ -1393,7 +2428,7 @@ function CTASection({ onBookDemo }: { onBookDemo: () => void }) {
         >
           Book a demo
         </button>
-      </div>
+      </Reveal>
     </section>
   );
 }

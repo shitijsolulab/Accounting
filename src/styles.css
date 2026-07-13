@@ -45,19 +45,19 @@
   --card-foreground: oklch(0.2 0.01 275);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.01 275);
-  --primary: oklch(0.52 0.2 264); /* SBI royal blue accent */
-  --primary-2: oklch(0.44 0.19 276); /* deeper blue for gradient fills */
+  --primary: oklch(0.62 0.1 182); /* AllaPro-style teal accent */
+  --primary-2: oklch(0.54 0.09 190); /* deeper teal for gradient fills */
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.965 0.004 275);
   --secondary-foreground: oklch(0.3 0.012 275);
   --muted: oklch(0.965 0.004 275);
   --muted-foreground: oklch(0.52 0.012 275);
-  --accent: oklch(0.95 0.03 264);
-  --accent-foreground: oklch(0.42 0.12 264);
+  --accent: oklch(0.95 0.03 182);
+  --accent-foreground: oklch(0.45 0.1 185);
   --destructive: oklch(0.58 0.2 27);
   --border: oklch(0.92 0.004 275);
   --input: oklch(0.92 0.004 275);
-  --ring: oklch(0.52 0.2 264);
+  --ring: oklch(0.62 0.1 182);
   --grid-line: oklch(0.2 0.01 275 / 0.045);
 }
 
@@ -72,19 +72,19 @@
   --card-foreground: oklch(0.96 0.004 275);
   --popover: oklch(0.2 0.01 275);
   --popover-foreground: oklch(0.96 0.004 275);
-  --primary: oklch(0.66 0.19 264);
-  --primary-2: oklch(0.58 0.2 276);
+  --primary: oklch(0.74 0.11 182);
+  --primary-2: oklch(0.66 0.1 190);
   --primary-foreground: oklch(0.16 0.01 275);
   --secondary: oklch(0.26 0.012 275);
   --secondary-foreground: oklch(0.96 0.004 275);
   --muted: oklch(0.24 0.012 275);
   --muted-foreground: oklch(0.72 0.014 275);
-  --accent: oklch(0.3 0.05 264);
-  --accent-foreground: oklch(0.9 0.05 264);
+  --accent: oklch(0.32 0.05 182);
+  --accent-foreground: oklch(0.9 0.05 182);
   --destructive: oklch(0.62 0.2 27);
   --border: oklch(0.3 0.01 275);
   --input: oklch(0.28 0.012 275);
-  --ring: oklch(0.66 0.19 264);
+  --ring: oklch(0.74 0.11 182);
   --grid-line: oklch(0.96 0.004 275 / 0.05);
   color: var(--foreground);
   background-color: var(--background);
@@ -136,19 +136,19 @@
   --card-foreground: oklch(0.24 0.012 260);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.24 0.012 260);
-  --primary: oklch(0.52 0.2 264); /* SBI royal blue accent (matches marketing) */
-  --primary-2: oklch(0.44 0.19 276);
+  --primary: oklch(0.62 0.1 182); /* AllaPro-style teal accent (matches marketing) */
+  --primary-2: oklch(0.54 0.09 190);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.965 0.004 275);
   --secondary-foreground: oklch(0.3 0.012 275);
   --muted: oklch(0.965 0.004 275);
   --muted-foreground: oklch(0.5 0.012 275);
-  --accent: oklch(0.95 0.03 264);
-  --accent-foreground: oklch(0.42 0.12 264);
+  --accent: oklch(0.95 0.03 182);
+  --accent-foreground: oklch(0.45 0.1 185);
   --destructive: oklch(0.58 0.2 27);
   --border: oklch(0.92 0.004 275);
   --input: oklch(0.92 0.004 275);
-  --ring: oklch(0.52 0.2 264);
+  --ring: oklch(0.62 0.1 182);
   color: var(--foreground);
   background-color: var(--background);
 }
@@ -163,19 +163,19 @@
   --card-foreground: oklch(0.96 0.004 260);
   --popover: oklch(0.23 0.008 260);
   --popover-foreground: oklch(0.96 0.004 260);
-  --primary: oklch(0.66 0.19 264);
-  --primary-2: oklch(0.58 0.2 276);
+  --primary: oklch(0.74 0.11 182);
+  --primary-2: oklch(0.66 0.1 190);
   --primary-foreground: oklch(0.16 0.01 275);
   --secondary: oklch(0.29 0.01 260);
   --secondary-foreground: oklch(0.96 0.004 260);
   --muted: oklch(0.27 0.01 260);
   --muted-foreground: oklch(0.72 0.014 260);
-  --accent: oklch(0.32 0.05 264);
-  --accent-foreground: oklch(0.9 0.05 264);
+  --accent: oklch(0.32 0.05 182);
+  --accent-foreground: oklch(0.9 0.05 182);
   --destructive: oklch(0.62 0.2 27);
   --border: oklch(0.32 0.008 260);
   --input: oklch(0.3 0.01 260);
-  --ring: oklch(0.66 0.19 264);
+  --ring: oklch(0.74 0.11 182);
 }
 
 /* Inside the shell, use the clean system UI font, not the display font. */
@@ -185,6 +185,15 @@
 .app-shell select,
 .app-shell textarea {
   font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Hide the scrollbar entirely while keeping the element scrollable. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Themed thin scrollbar — used on scrollable modals/panels so the native
@@ -264,6 +273,45 @@
   animation: bob 1.6s ease-in-out infinite;
 }
 
+/* Animated "data flowing" along the wired flow-diagram connectors. */
+@keyframes wire-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.wire-flow {
+  stroke-dasharray: 5 7;
+  animation: wire-flow 1s linear infinite;
+}
+/* Soft pulsing halo for the central AI core node. */
+@keyframes core-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--primary);
+    opacity: 0.85;
+  }
+  50% {
+    box-shadow: 0 0 40px -6px var(--primary);
+    opacity: 1;
+  }
+}
+.core-pulse {
+  animation: core-pulse 2.6s ease-in-out infinite;
+}
+/* Scroll-reveal that scales up slightly as it fades in. */
+.reveal-pop {
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  transition:
+    opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.reveal-pop.in-view {
+  opacity: 1;
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .reveal {
     opacity: 1;
@@ -275,7 +323,14 @@
     transition: none;
   }
   .arrow-float,
-  .arrow-bob {
+  .arrow-bob,
+  .wire-flow,
+  .core-pulse {
     animation: none;
+  }
+  .reveal-pop {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 }

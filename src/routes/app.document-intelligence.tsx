@@ -21,6 +21,7 @@ import {
   Table2,
   User,
   Wallet,
+  X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -516,6 +517,7 @@ function DocumentIntelligencePage() {
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | DocType>("all");
   const [selectedId, setSelectedId] = useState<string>(documents[0].id);
+  const [aiOpen, setAiOpen] = useState(true);
 
   const filtered = useMemo(() => {
     let list = documents;
@@ -540,8 +542,8 @@ function DocumentIntelligencePage() {
   const avgConf = Math.round(documents.reduce((s, d) => s + d.confidence, 0) / documents.length);
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
-      <div className="flex flex-wrap items-end justify-between gap-3 pb-4">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
@@ -557,24 +559,41 @@ function DocumentIntelligencePage() {
           <button className="h-9 rounded-lg border border-border bg-surface px-3.5 text-xs font-medium transition hover:border-primary/50 hover:text-primary">
             Upload document
           </button>
-          <button className="brand-gradient inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/25 transition hover:opacity-90">
+          <button
+            onClick={() => setAiOpen((o) => !o)}
+            aria-pressed={aiOpen}
+            className={cn(
+              "inline-flex h-9 items-center gap-1.5 rounded-lg px-3.5 text-xs font-semibold shadow-sm transition",
+              aiOpen
+                ? "brand-gradient text-primary-foreground shadow-primary/25 hover:opacity-90"
+                : "border border-border bg-surface text-foreground hover:border-primary/50 hover:text-primary",
+            )}
+          >
             <Sparkles className="h-3.5 w-3.5" />
-            Ask AI Copilot
+            {aiOpen ? "Hide AI Copilot" : "Ask AI Copilot"}
           </button>
         </div>
       </div>
 
       {/* Quick stats */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <MiniKpi icon={FileStack} label="Indexed" value={String(totalValue)} />
         <MiniKpi icon={ClipboardCheck} label="Need approval" value={String(needApproval)} tone="text-amber-500" />
         <MiniKpi icon={ScanLine} label="Avg. confidence" value={`${avgConf}%`} tone={confColor(avgConf)} />
         <MiniKpi icon={CheckCircle2} label="Auto-coded" value="96%" tone="text-emerald-500" />
       </div>
 
-      {/* Split-screen workspace */}
-      <div className="grid min-h-0 flex-1 grid-cols-12 gap-5">
-        <div className="col-span-12 min-h-0 lg:col-span-3">
+      {/* Workspace — responsive grid: fixed rail · fluid center · dockable AI panel */}
+      <div
+        className={cn(
+          "grid grid-cols-1 items-start gap-6 lg:gap-8",
+          aiOpen
+            ? "lg:grid-cols-[272px_minmax(0,1fr)_360px]"
+            : "lg:grid-cols-[272px_minmax(0,1fr)]",
+        )}
+      >
+        {/* Left rail — document list */}
+        <div className="lg:sticky lg:top-6">
           <DocumentBrowser
             query={query}
             setQuery={setQuery}
@@ -585,7 +604,9 @@ function DocumentIntelligencePage() {
             onSelect={setSelectedId}
           />
         </div>
-        <div className="nice-scroll col-span-12 min-h-0 space-y-5 overflow-y-auto pr-1 lg:col-span-6">
+
+        {/* Center — the document (primary focus) */}
+        <div className="min-w-0 space-y-6">
           <DocumentViewer doc={selected} />
           <ExtractedFieldsCard doc={selected} />
           {selected.gl && <GlCodingCard doc={selected} />}
@@ -594,9 +615,13 @@ function DocumentIntelligencePage() {
           <ActionItemsCard doc={selected} />
           <RelatedDocumentsCard doc={selected} onSelect={setSelectedId} />
         </div>
-        <div className="col-span-12 min-h-0 lg:col-span-3">
-          <AskAiPanel doc={selected} />
-        </div>
+
+        {/* Right — dockable AI copilot */}
+        {aiOpen && (
+          <div className="min-w-0 lg:sticky lg:top-6">
+            <AskAiPanel doc={selected} onClose={() => setAiOpen(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -648,7 +673,7 @@ function DocumentBrowser({
   const types: DocType[] = ["invoice", "receipt", "bank-statement", "purchase-order", "expense-report"];
 
   return (
-    <section className={cn(PANEL, "flex h-full flex-col overflow-hidden")}>
+    <section className={cn(PANEL, "flex max-h-[calc(100vh-7rem)] flex-col overflow-hidden")}>
       <div className="space-y-3 border-b border-border p-4">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -824,7 +849,7 @@ function DocumentViewer({ doc }: { doc: DocumentItem }) {
 
 function TextPreview({ doc }: { doc: DocumentItem }) {
   return (
-    <div className="mx-auto min-h-[240px] max-w-2xl rounded-md border border-border bg-card p-8 shadow-md">
+    <div className="min-h-[240px] w-full rounded-md border border-border bg-card p-8 shadow-md">
       <div className="mb-4 flex items-center justify-between">
         <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
           {docTypeMeta[doc.type].label} · {doc.id.toUpperCase()}
@@ -868,7 +893,7 @@ function ExtractedFieldsCard({ doc }: { doc: DocumentItem }) {
           </span>
         }
       />
-      <div className="grid grid-cols-1 gap-x-5 gap-y-3 p-5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-4 p-5 sm:grid-cols-2 xl:grid-cols-3">
         {doc.fields.map((f) => (
           <div key={f.label} className="min-w-0">
             <div className="flex items-baseline justify-between gap-2">
@@ -1077,7 +1102,7 @@ interface AssistantMsg {
   text: string;
 }
 
-function AskAiPanel({ doc }: { doc: DocumentItem }) {
+function AskAiPanel({ doc, onClose }: { doc: DocumentItem; onClose?: () => void }) {
   const [messages, setMessages] = useState<AssistantMsg[]>([]);
   const [input, setInput] = useState("");
 
@@ -1126,8 +1151,23 @@ function AskAiPanel({ doc }: { doc: DocumentItem }) {
   const suggestions = ["Summarize this", "Any risks?", "Show the GL coding", "How confident are you?"];
 
   return (
-    <section className={cn(PANEL, "flex h-full flex-col overflow-hidden")}>
-      <SectionHeader icon={Sparkles} title="Ask AI About This Document" hint={doc.title} />
+    <section className={cn(PANEL, "flex max-h-[calc(100vh-7rem)] flex-col overflow-hidden")}>
+      <SectionHeader
+        icon={Sparkles}
+        title="Ask AI About This Document"
+        hint={doc.title}
+        right={
+          onClose ? (
+            <button
+              onClick={onClose}
+              aria-label="Close AI Copilot"
+              className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition hover:bg-surface-2 hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : undefined
+        }
+      />
       <div className="nice-scroll flex-1 space-y-3 overflow-y-auto p-4">
         {messages.length === 0 && (
           <div className="space-y-2">

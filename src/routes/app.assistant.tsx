@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
-  AlertTriangle,
   Bot,
   FileSearch,
   RefreshCw,
@@ -32,12 +31,78 @@ const CAPABILITIES: { icon: LucideIcon; title: string; detail: string }[] = [
   { icon: Sparkles, title: "Traced", detail: "Every turn is logged to your audit trail." },
 ];
 
+/* ─────────────────────────  Dummy responses (prototype)  ───────────────────────── */
+
+// Keyword-matched canned answers so the prototype always responds even without a
+// live LLM backend. Uses **bold** and "• " bullets which the renderer styles.
+function dummyReply(message: string, useRag: boolean): string {
+  const q = message.toLowerCase();
+  const cite = useRag ? "\n\n_Sources: Invoice AC-2214, Mercury statement (Jun), Q3 expense report._" : "";
+
+  if (q.includes("summar") && (q.includes("document") || q.includes("recent") || q.includes("invoice"))) {
+    return (
+      "Here's a summary of your most recent document — **Invoice #AC-2214 from Acme Supplies**:\n\n" +
+      "• **Amount:** $14,280.00 (Net 30, due Aug 07, 2026)\n" +
+      "• **3-way match:** passed against PO-2214 and the goods receipt\n" +
+      "• **Flag:** a $1,180.00 freight charge wasn't on the original PO — worth confirming\n" +
+      "• **Status:** awaiting Controller approval before it posts" +
+      cite
+    );
+  }
+  if (q.includes("what can") || q.includes("platform do") || q.includes("for my team")) {
+    return (
+      "I'm your **accounting copilot**. I can take the busywork off your team across the ledger:\n\n" +
+      "• **Document intelligence** — read invoices, receipts, and statements into clean data\n" +
+      "• **AP/AR** — 3-way match, duplicate detection, collections drafts\n" +
+      "• **Reconciliation** — auto-match bank activity and surface only the exceptions\n" +
+      "• **Close & reporting** — accruals, variances, and board-ready statements\n\n" +
+      "Everything I do is drafted for review — **nothing posts without a human approving it.**"
+    );
+  }
+  if (q.includes("status update") || q.includes("this week") || q.includes("draft")) {
+    return (
+      "**Finance — weekly status**\n\n" +
+      "• **Close:** July close is ~65% complete; bank recs done, 2 balance-sheet accounts left\n" +
+      "• **AP:** 12 invoices processed, 5 awaiting approval, 1 duplicate held (Globex GX-2231)\n" +
+      "• **AR:** collections drafted for 12 overdue accounts; DSO trending down\n" +
+      "• **Risks:** one expense over the lodging cap pending justification\n\n" +
+      "Want me to tailor this for a specific stakeholder?"
+    );
+  }
+  if (q.includes("approval") || q.includes("approve")) {
+    return (
+      "**How approvals work here:**\n\n" +
+      "• A copilot drafts an action (e.g. an invoice ready to post) and pauses\n" +
+      "• It routes to the right approver based on type and amount thresholds\n" +
+      "• The approver reviews the AI summary + control checks, then approves or rejects\n" +
+      "• Only after sign-off does anything write back to your ledger — with a full audit trail" +
+      cite
+    );
+  }
+  if (q.includes("reconcil")) {
+    return (
+      "For the **June reconciliation**, 398 of 412 transactions auto-matched (**96.6%**). " +
+      "14 exceptions are grouped — mostly bank fees and a pending deposit — and I've proposed 2 fee " +
+      "journal entries for review. Shall I open the exceptions?" + cite
+    );
+  }
+  if (q.includes("hello") || q.includes("hi ") || q.trim() === "hi" || q.includes("hey")) {
+    return "Hi! I'm your accounting copilot. Ask me about your documents, the close, approvals, or reconciliation — or tap a suggestion to start.";
+  }
+  return (
+    "Here's how I'd approach that: I'd pull the relevant documents and ledger data, draft a clear " +
+    "answer, and flag anything that needs your review before it posts. Try asking about a **specific " +
+    "invoice, the month-end close, approvals, or reconciliation.**" + cite
+  );
+}
+
+/* ─────────────────────────  Page  ───────────────────────── */
+
 function Assistant() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [useRag, setUseRag] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const sessionId = useRef<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -45,10 +110,26 @@ function Assistant() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
+  const appendToLast = (delta: string) =>
+    setMessages((m) => {
+      const copy = [...m];
+      const last = copy[copy.length - 1];
+      copy[copy.length - 1] = { role: "assistant", content: last.content + delta };
+      return copy;
+    });
+
+  // Stream a canned answer word-by-word for a realistic typing feel.
+  const streamDummy = async (full: string) => {
+    const tokens = full.match(/\S+\s*/g) ?? [full];
+    for (const t of tokens) {
+      await new Promise((r) => setTimeout(r, 22));
+      appendToLast(t);
+    }
+  };
+
   const send = async (text: string) => {
     const message = text.trim();
     if (!message || streaming) return;
-    setError(null);
     setInput("");
     setMessages((m) => [
       ...m,
@@ -56,7 +137,9 @@ function Assistant() {
       { role: "assistant", content: "" },
     ]);
     setStreaming(true);
+
     try {
+      let got = false;
       for await (const chunk of api.chatStream({
         message,
         session_id: sessionId.current,
@@ -64,21 +147,15 @@ function Assistant() {
       })) {
         if (chunk.session_id) sessionId.current = chunk.session_id;
         if (chunk.delta) {
-          setMessages((m) => {
-            const copy = [...m];
-            copy[copy.length - 1] = {
-              role: "assistant",
-              content: copy[copy.length - 1].content + chunk.delta,
-            };
-            return copy;
-          });
+          got = true;
+          appendToLast(chunk.delta);
         }
       }
+      // Backend reachable but returned nothing → fall back to a dummy reply.
+      if (!got) await streamDummy(dummyReply(message, useRag));
     } catch {
-      setError(
-        "The assistant is unavailable. An LLM provider key may not be configured on the backend.",
-      );
-      setMessages((m) => m.slice(0, -1)); // drop the empty assistant bubble
+      // No backend (prototype) → simulate a response so the demo always works.
+      await streamDummy(dummyReply(message, useRag));
     } finally {
       setStreaming(false);
     }
@@ -87,7 +164,6 @@ function Assistant() {
   const reset = () => {
     setMessages([]);
     sessionId.current = undefined;
-    setError(null);
   };
 
   const hasMessages = messages.length > 0;
@@ -98,21 +174,26 @@ function Assistant() {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
             AI Assistant
           </div>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
             Chat grounded in your organization's data
           </h1>
         </div>
-        {hasMessages && (
-          <button
-            onClick={reset}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium transition hover:border-primary/50 hover:text-primary"
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> New chat
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-500 sm:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Copilot online
+          </span>
+          {hasMessages && (
+            <button
+              onClick={reset}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm font-medium transition hover:border-primary/50 hover:text-primary"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> New chat
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Conversation */}
@@ -123,10 +204,7 @@ function Assistant() {
         {hasMessages ? (
           <div className="mx-auto flex max-w-3xl flex-col gap-5">
             {messages.map((m, i) => (
-              <div
-                key={i}
-                className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")}
-              >
+              <div key={i} className={cn("flex gap-3", m.role === "user" && "flex-row-reverse")}>
                 <div
                   className={cn(
                     "grid h-8 w-8 shrink-0 place-items-center rounded-lg",
@@ -139,13 +217,17 @@ function Assistant() {
                 </div>
                 <div
                   className={cn(
-                    "max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
+                    "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                     m.role === "user"
                       ? "rounded-tr-sm bg-primary text-primary-foreground"
                       : "rounded-tl-sm border border-border bg-card text-foreground",
                   )}
                 >
-                  {m.content || (streaming ? <TypingDots /> : "")}
+                  {m.content ? (
+                    <RichText text={m.content} />
+                  ) : streaming ? (
+                    <TypingDots />
+                  ) : null}
                 </div>
               </div>
             ))}
@@ -154,13 +236,6 @@ function Assistant() {
           <EmptyState onAsk={send} />
         )}
       </div>
-
-      {error && (
-        <div className="mt-2 flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          <AlertTriangle className="h-4 w-4 shrink-0" />
-          {error}
-        </div>
-      )}
 
       {/* Composer */}
       <form
@@ -266,9 +341,48 @@ function EmptyState({ onAsk }: { onAsk: (p: string) => void }) {
   );
 }
 
+// Lightweight renderer: **bold**, "• " bullets, and preserved line breaks.
+function RichText({ text }: { text: string }) {
+  return (
+    <div className="space-y-1.5">
+      {text.split("\n").map((line, i) => {
+        if (line.trim() === "") return <div key={i} className="h-1.5" />;
+        const bullet = line.trimStart().startsWith("• ");
+        const body = bullet ? line.trimStart().slice(2) : line;
+        return (
+          <div key={i} className={cn("flex gap-2", bullet && "pl-1")}>
+            {bullet && <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-primary" />}
+            <span className="whitespace-pre-wrap">{renderBold(body)}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function renderBold(text: string) {
+  return text.split(/(\*\*.+?\*\*|_.+?_)/g).map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-semibold">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("_") && part.endsWith("_") && part.length > 2) {
+      return (
+        <em key={i} className="text-muted-foreground">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 function TypingDots() {
   return (
-    <span className="inline-flex gap-1">
+    <span className="inline-flex gap-1 py-1">
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground" />
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:150ms]" />
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-muted-foreground [animation-delay:300ms]" />

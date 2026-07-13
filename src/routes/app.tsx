@@ -44,13 +44,16 @@ function Shell() {
 
   return (
     <div
-      className={cn("app-shell flex min-h-screen w-full bg-background", theme === "dark" && "dark")}
+      className={cn(
+        "app-shell flex h-screen w-full overflow-hidden bg-background",
+        theme === "dark" && "dark",
+      )}
     >
       <AppSidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <AppHeader onMenu={() => setMobileOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl p-5 lg:p-6">
+        <main className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1600px] p-5 lg:p-6 xl:p-8">
             <Outlet />
           </div>
         </main>
